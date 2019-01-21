@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class ServerJob {
     private ServerSocket serverSocket = new ServerSocket(Constant.SOCKET_PORT);
     private List<Client> pull = new ArrayList<>();
-    Flowable<Message> in;
+    private Flowable<Message> in;
     private SimpleDateFormat sdf;
 
     public ServerJob() throws IOException {
@@ -28,15 +28,20 @@ public class ServerJob {
                 Client client = new Client(cl);
                 Message message = new Message();
                 String inMessage = client.getIn().readUTF();
-                // message.setCmd(parseMessage(inMessage, Constant.PATTERN_CMD));
-                // message.setName(parseMessage(inMessage, Constant.PATTERN_LOGIN));
-                // if (message.getCmd().equals(Constant.TAG_LOGIN)){
-                //      client.setLogin(message.getName);
-                // }
+                message.setCmd(parseMessage(inMessage, Constant.PATTERN_CMD));
+                message.setName(parseMessage(inMessage, Constant.PATTERN_LOGIN));
+                if (message.getCmd().equals(Constant.TAG_LOGIN)){
+                    client.setName(message.getName());
+                    pull.add(0, client);
+                }
                 return Flowable.just(message);
             })
             .filter(Objects::nonNull)
             .subscribe(System.out::println, Throwable::printStackTrace);
+    }
+
+    private String parseMessage(String message, String pattern) {
+        return "";
     }
 }
 

@@ -7,7 +7,7 @@ public class Client {
     private DataOutputStream out;
     private DataInputStream in;
     private Socket cs;
-    private String login;
+    private String name;
 
     public Client(Socket cs) throws IOException {
         this.cs = cs;
@@ -20,7 +20,7 @@ public class Client {
         return "Client(" +
             "out = " + out +
             "in = " + in +
-            "login = " + login + '\'' +
+            "name = " + name + '\'' +
             ")";
     }
 
@@ -32,11 +32,11 @@ public class Client {
         return in;
     }
 
-    public String getLogin() {
-        return login;
+    public String getName() {
+        return name;
     }
 
-    public void setLogin(String login) {
-        this.login = login;
+    public void setName(String name) {
+        this.name = name;
     }
 }
