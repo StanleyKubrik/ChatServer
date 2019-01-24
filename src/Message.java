@@ -6,8 +6,8 @@ public class Message {
     @Override
     public String toString() {
         return "Message(" +
-            "name = " + name +
-            "message = " + message +
+            "name = " + name + "; " +
+            "message = " + message + "; " +
             "cmd = " + cmd +
             ")";
     }

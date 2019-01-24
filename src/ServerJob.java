@@ -22,7 +22,8 @@ public class ServerJob {
 
     private void connectClient() {
         Flowable.interval(50, TimeUnit.MILLISECONDS, Schedulers.io())
-            .flatMap(v -> Flowable.just(serverSocket.accept())).flatMap(cl -> {
+            .flatMap(v -> Flowable.just(serverSocket.accept()))
+            .flatMap(cl -> {
                 Client client = new Client(cl);
                 Message message = new Message();
                 String inMessage = client.getIn().readUTF();
@@ -32,6 +33,35 @@ public class ServerJob {
                     client.setName(message.getName());
                     pull.add(0, client);
                 }
+                sendForALl(client.getName(), Constant.TAG_CONNECT_CLIENT);
+                return Flowable.just(message);
+            })
+            .filter(Objects::nonNull)
+            .subscribe(System.out::println, Throwable::printStackTrace);
+
+        in = Flowable.interval(50, TimeUnit.MILLISECONDS, Schedulers.io())
+            .flatMap(v -> {
+                Message message = new Message();
+                pull.forEach(client -> {
+                    if (client.getIn().available() > 0) {
+                        message.setName(client.getName());
+                        String inMessage = client.getIn().readUTF();
+                        switch (parseMessage(inMessage, Constant.PATTERN_CMD)) {
+                            case Constant.TAG_MESSAGE:
+                                try {
+                                    sendForALl(parseMessage(inMessage, Constant.TAG_MESSAGE));
+                                } catch (Exception e) {
+                                    client.getCs().close();
+                                    pull.remove(client);
+                                }
+                                break;
+                            case Constant.TAG_EXIT:
+                                sendForALl(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
+                                pull.remove(client);
+                                break;
+                        }
+                    }
+                });
                 return Flowable.just(message);
             })
             .filter(Objects::nonNull)
@@ -41,10 +71,32 @@ public class ServerJob {
     private String parseMessage(String message, String cmdPattern) {
         Pattern pattern = Pattern.compile(cmdPattern);
         Matcher matcher = pattern.matcher(message);
-        return "";
+        if (matcher.find()){
+            return matcher.group().replaceAll(":", " ").trim();
+        } else {
+            return "";
+        }
+    }
+
+    private void sendForALl(String message, String tag){
+        pull.forEach(client -> {
+            try {
+                client.getOut().writeUTF(message.concat(tag));
+                client.getOut().flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void sendForALl(String message){
+        pull.forEach(client -> {
+            try {
+                client.getOut().writeUTF(client.getName().concat(": ").concat(message));
+                client.getOut().flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }
-
-//    String lon = login.replaceAll(":", " ");
-//    System.out.println(lon);
-

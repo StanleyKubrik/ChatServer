@@ -39,4 +39,8 @@ public class Client {
     public void setName(String name) {
         this.name = name;
     }
+
+    public Socket getCs() {
+        return cs;
+    }
 }
