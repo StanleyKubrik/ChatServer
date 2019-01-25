@@ -40,32 +40,67 @@ public class ServerJob {
             .subscribe(System.out::println, Throwable::printStackTrace);
 
         in = Flowable.interval(50, TimeUnit.MILLISECONDS, Schedulers.io())
-            .flatMap(v -> {
-                Message message = new Message();
-                pull.forEach(client -> {
-                    if (client.getIn().available() > 0) {
-                        message.setName(client.getName());
-                        String inMessage = client.getIn().readUTF();
-                        switch (parseMessage(inMessage, Constant.PATTERN_CMD)) {
-                            case Constant.TAG_MESSAGE:
-                                try {
-                                    sendForALl(parseMessage(inMessage, Constant.TAG_MESSAGE));
-                                } catch (Exception e) {
-                                    client.getCs().close();
-                                    pull.remove(client);
+                .flatMap(v -> {
+                    Message message = new Message();
+                    pull.forEach(client -> {
+                        try {
+                            if (client.getIn().available() > 0) {
+                                message.setName(client.getName());
+                                String inMessage = client.getIn().readUTF();
+                                switch (parseMessage(inMessage, Constant.PATTERN_CMD)) {
+                                    case Constant.TAG_MESSAGE:
+                                        try {
+                                            sendForALl(parseMessage(inMessage, Constant.TAG_MESSAGE));
+                                        } catch (Exception e) {
+                                            client.getCs().close();
+                                        }
+                                        break;
+                                    case Constant.TAG_EXIT:
+                                        sendForALl(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
+                                        break;
                                 }
-                                break;
-                            case Constant.TAG_EXIT:
-                                sendForALl(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
-                                pull.remove(client);
-                                break;
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    }
+                    });
+                    return Flowable.just(message);
                 });
-                return Flowable.just(message);
-            })
-            .filter(Objects::nonNull)
-            .subscribe(System.out::println, Throwable::printStackTrace);
+        listener();
+    }
+
+//    private Message checkClient(List<Client> pull){
+//        Message message = new Message();
+//        pull.forEach(client -> {
+//            try {
+//                if (client.getIn().available() > 0) {
+//                    message.setName(client.getName());
+//                    String inMessage = client.getIn().readUTF();
+//                    switch (parseMessage(inMessage, Constant.PATTERN_CMD)) {
+//                        case Constant.TAG_MESSAGE:
+//                            try {
+//                                sendForALl(parseMessage(inMessage, Constant.TAG_MESSAGE));
+//                            } catch (Exception e) {
+//                                client.getCs().close();
+//                                // pull.remove(client);
+//                            }
+//                            break;
+//                        case Constant.TAG_EXIT:
+//                            sendForALl(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
+//                            // pull.remove(client);
+//                            break;
+//                    }
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
+//        return message;
+//    }
+
+    private void listener(){
+        in.filter(message -> message.getCmd() != null && message.getMessage() != null)
+                .subscribe(System.out::println, Throwable::printStackTrace);
     }
 
     private String parseMessage(String message, String cmdPattern) {
