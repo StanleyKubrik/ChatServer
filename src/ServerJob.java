@@ -1,5 +1,4 @@
 import io.reactivex.Flowable;
-import io.reactivex.Observer;
 import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -29,12 +28,12 @@ public class ServerJob {
                 Message message = new Message();
                 String inMessage = client.getIn().readUTF();
                 message.setCmd(parseMessage(inMessage, Constant.PATTERN_CMD));
-                message.setName(parseMessage(inMessage, Constant.PATTERN_LOGIN));
+                message.setName(parseMessage(inMessage, Constant.PATTERN_MESSAGE));
                 if (message.getCmd().equals(Constant.TAG_LOGIN)){
                     client.setName(message.getName());
                     pull.add(0, client);
                 }
-                sendForALl(client.getName(), Constant.TAG_CONNECT_CLIENT);
+                sendForAll(client.getName(), Constant.TAG_CONNECT_CLIENT);
                 return Flowable.just(message);
             })
             .filter(Objects::nonNull)
@@ -51,13 +50,13 @@ public class ServerJob {
                                 switch (parseMessage(inMessage, Constant.PATTERN_CMD)) {
                                     case Constant.TAG_MESSAGE:
                                         try {
-                                            sendForALl(parseMessage(inMessage, Constant.TAG_MESSAGE));
+                                            sendForAll(parseMessage(inMessage, Constant.PATTERN_MESSAGE));
                                         } catch (Exception e) {
                                             client.getCs().close();
                                         }
                                         break;
                                     case Constant.TAG_EXIT:
-                                        sendForALl(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
+                                        sendForAll(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
                                         break;
                                 }
                             }
@@ -80,14 +79,14 @@ public class ServerJob {
 //                    switch (parseMessage(inMessage, Constant.PATTERN_CMD)) {
 //                        case Constant.TAG_MESSAGE:
 //                            try {
-//                                sendForALl(parseMessage(inMessage, Constant.TAG_MESSAGE));
+//                                sendForAll(parseMessage(inMessage, Constant.TAG_MESSAGE));
 //                            } catch (Exception e) {
 //                                client.getCs().close();
 //                                // pull.remove(client);
 //                            }
 //                            break;
 //                        case Constant.TAG_EXIT:
-//                            sendForALl(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
+//                            sendForAll(message.getName(), Constant.TAG_DISCONNECT_CLIENT);
 //                            // pull.remove(client);
 //                            break;
 //                    }
@@ -114,7 +113,8 @@ public class ServerJob {
         }
     }
 
-    private void sendForALl(String message, String tag){
+    // TODO sendForAll (Message message)
+    private void sendForAll(String message, String tag){
         pull.forEach(client -> {
             try {
                 client.getOut().writeUTF(message.concat(tag));
@@ -125,7 +125,7 @@ public class ServerJob {
         });
     }
 
-    private void sendForALl(String message){
+    private void sendForAll(String message){
         pull.forEach(client -> {
             try {
                 client.getOut().writeUTF(client.getName().concat(": ").concat(message));
